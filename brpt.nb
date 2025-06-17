@@ -1,0 +1,24 @@
+(*
+Authors:
+Baldi Michele michele.baldi.1970@gmail.com
+Marco Righi marco.righi@cnr.it
+*)
+BRPT[n_Integer] := Module[
+{m, M, b, r = True},
+Which[
+n < 2, Return[False],
+n == 2 || n == 3, Return[True],
+EvenQ[n], Return[False],
+PowerMod[2, n, n] =!= 2, Return[False]
+];
+M = Ceiling[n^(1/3)];
+m = Quotient[M, 2];
+For[b = M, b >= m, b--,
+If[PowerMod[b, n, n*b] =!= b,
+r = False;
+Break[];
+];
+];
+Return[r];
+];
+
