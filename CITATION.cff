@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use BRPT in scientific work, please cite the software release used in your computations."
+title: "BRPT: cubic Frobenius probable-primality test"
+type: software
+authors:
+  - family-names: Righi
+    given-names: Marco
+  - family-names: Baldi
+    given-names: Michele
+license: MIT
+abstract: >-
+  Reference implementation and validation suite for the BRPT cubic Frobenius
+  probable-primality test. The repository contains the primality-test engine,
+  reproducible test campaigns for external datasets, ring scans, exact-prime
+  validation, and diagnostic plotting tools.
+keywords:
+  - primality testing
+  - probable prime
+  - Frobenius test
+  - cubic polynomial
+  - Carmichael numbers
+  - pseudoprimes
+  - computational number theory

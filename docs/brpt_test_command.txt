@@ -1,0 +1,402 @@
+	===========================================================================
+			BRPT TEST – COMPLETE COMMAND REFERENCE
+	===========================================================================
+	
+	1.  INTRODUCTION
+		------------------------------------------------------------
+		brpt_test.py is the unified script for running BRPT primality
+		tests on datasets, exact-prime campaigns, 6k±1 ring scans, and
+		generating diagnostic plots.
+	
+		It supports four main modes, selected with --mode:
+	
+		FILE   – test the integers contained in a dataset;
+		RING   – scan integers congruent to 1 or 5 modulo 6;
+		PRIME  – generate exact primes and test them with BRPT;
+		PLOT   – generate diagnostic charts from completed reports.
+	
+		The legacy spelling PRIMES is also accepted as an alias for PRIME.
+	
+		Requires Python 3 and, optionally for plots:
+		- matplotlib (for static charts)
+		- plotly    (for interactive charts)
+	
+		FILE, RING, and PRIME automatically use the brpt.py file located
+		in the same directory as brpt_test.py as the BRPT test engine.
+	
+	
+	2.  GENERAL SYNTAX
+		------------------------------------------------------------
+		python3 brpt_test.py --mode {FILE|RING|PRIME|PLOT} [options]
+	
+		Backward-compatible alias:
+		python3 brpt_test.py --mode PRIMES [options]
+	
+		Available options depend on the selected mode. Invalid parameters
+		for the selected mode are rejected.
+	
+	
+	3.  FILE MODE – Dataset Testing
+		------------------------------------------------------------
+		Reads integers from a text file, optionally compressed with .gz
+		or .bz2, and compares each BRPT result with an expected result
+		(COMPOSITE or PRIME).
+	
+		Syntax:
+		python3 brpt_test.py --mode FILE \
+			--input <path> \
+			[--expected {COMPOSITE|PRIME}] \
+			[--output <dir>] \
+			[--progress <N>]
+	
+		Options:
+		--input <file>     	required input file in plain text, .gz, or
+							.bz2 format. Lines are read sequentially;
+							the first unsigned integer on each line is
+							taken as the number to test.
+		--expected <val>   	expected classification for every number:
+							COMPOSITE or PRIME.
+							Default: COMPOSITE
+		--output <dir>     	directory for output files.
+							Default: brpt_test_results
+		--progress <N>     	print progress every N tested numbers.
+							Default: 5000. Use 0 to disable.
+	
+		Generated outputs:
+		results_<name>.csv         	– all results, one row per number
+		counterexamples_<name>.csv 	– numbers that did not match the
+									  expected classification
+		summary_<name>.json       	– summary in JSON format
+	
+		Examples:
+		# Carmichael dataset: every number is composite
+		python3 brpt_test.py --mode FILE \
+			--input c21.gz --expected COMPOSITE
+	
+		# Fermat base-2 pseudoprime dataset: every number is composite
+		python3 brpt_test.py --mode FILE \
+			--input psps.bz2 --expected COMPOSITE
+	
+		# Custom output and progress every 10,000 numbers
+		python3 brpt_test.py --mode FILE \
+			--input ./c21.gz --expected COMPOSITE \
+			--output ./results_c21 --progress 10000
+	
+	
+	4.  RING MODE – 6k±1 Ring Scan
+		------------------------------------------------------------
+		Automatically generates numbers congruent to 1 or 5 modulo 6
+		and compares BRPT with sympy.isprime. It tracks winning (A,B)
+		coefficient pairs and rings max(|A|,|B|), producing resumable
+		checkpoints.
+	
+		Syntax:
+		python3 brpt_test.py --mode RING \
+			[--start <N>] \
+			[--count <N>] \
+			[--output <dir>] \
+			[--save <N>] \
+			[--restart] \
+			[--events] \
+			[--probable] \
+			[--progress <N>]
+	
+		Options:
+		--start <N>         exclusive lower bound. Scanning starts at
+							the first integer > N congruent to 1 or 5
+							modulo 6.
+							Default: 1
+							Ignored when resuming a checkpoint.
+		--count <N>         number of candidates to test in this run.
+							If omitted, continues indefinitely until
+							interrupted or until the first mismatch/error.
+		--output <dir>      output directory and checkpoint directory.
+							Default: result_test_ring
+		--save <N>          save the checkpoint every N completed
+							candidates.
+							Default: 1000
+		--restart           ignore an existing checkpoint and restart
+							from --start.
+		--events            save one CSV row for every tested candidate
+							in mod6_events_ring.csv.
+		--probable          allow SymPy comparisons for n >= 2**64,
+							marked as probable rather than definitive.
+		--progress <N>      print progress every N candidates.
+							Default: 5000. Use 0 to disable.
+	
+		Generated outputs:
+		state_ring.json             – resumable checkpoint
+		summary_ring.json           – summary in JSON
+		pair_first_seen_ring.csv    – first occurrence of each pair
+		ring_first_seen_ring.csv    – first occurrence of each ring
+		errors_ring.csv             – execution errors
+		mismatches_ring.csv         – BRPT/SymPy mismatches
+		mod6_events_ring.csv        – full data, only with --events
+	
+		Examples:
+		# Start a continuous scan from 1
+		python3 brpt_test.py --mode RING \
+			--start 1 --output ./results_ring
+	
+		# Resume an existing checkpoint
+		python3 brpt_test.py --mode RING \
+			--output ./results_ring
+	
+		# Ignore the checkpoint and restart from 1
+		python3 brpt_test.py --mode RING \
+			--restart --start 1 --output ./results_ring
+	
+		# Test 100,000 candidates and save every 100,000
+		python3 brpt_test.py --mode RING \
+			--count 100000 --save 100000
+	
+		# Save every event and print progress every 10,000
+		python3 brpt_test.py --mode RING \
+			--start 1 --events --progress 10000
+	
+		# Continue beyond 2**64 using a probable SymPy reference
+		python3 brpt_test.py --mode RING \
+			--start 1 --probable
+	
+	
+	5.  PRIME MODE – Exact Prime Validation
+		------------------------------------------------------------
+		Generates only exact primes in increasing order with a segmented
+		sieve and submits them to BRPT. Since composites are never tested,
+		this campaign detects false negatives but cannot detect false
+		positives.
+	
+		The scan stops immediately when:
+		- BRPT rejects a generated prime;
+		- BRPT or a worker raises an exception;
+		- the user interrupts the run with Ctrl+C.
+	
+		In every case, the current checkpoint is saved. Existing compatible
+		checkpoints are resumed automatically.
+	
+		Syntax:
+		python3 brpt_test.py --mode PRIME \
+			[--start <N>] \
+			[--stop <N>] \
+			[--output <dir>] \
+			[--segment <N>] \
+			[--save <N>] \
+			[--restart] \
+			[--events] \
+			[--allow-module-change] \
+			[--progress <N>]
+	
+		Options:
+		--start <N>         	inclusive lower bound for prime generation.
+								Default: 2
+		--stop <N>          	inclusive upper bound. If omitted or set to 0,
+								the scan continues until interrupted or until
+								the first false negative/error.
+								Default: 0
+		--output <dir>      	output directory and checkpoint directory.
+								Default: results_prime_scan
+		--segment <N>       	width of each exact segmented-sieve interval.
+								Default: 2,000,000
+		--save <N>          	rewrite the checkpoint every N completed primes.
+								Default: 10,000
+		--restart           	ignore the existing checkpoint and restart
+								from --start.
+		--events            	save one CSV row for every tested prime in
+								prime_results.csv. This file can become large.
+		--allow-module-change	resume even if the path or SHA-256 of brpt.py
+								differs from the checkpoint. Use only when the
+								change is intentional.
+		--progress <N>      	print progress every N tested primes.
+								Default: 10,000. Use 0 to disable.
+	
+		Generated outputs:
+		state_prime_scan.json   – resumable checkpoint
+		summary_prime_scan.json – final/session summary
+		false_negatives.csv     – generated primes rejected by BRPT
+		errors.csv              – BRPT, worker, or main-process errors
+		prime_results.csv       – all tested primes, only with --events
+	
+		Behaviour of the checkpoint:
+		- a normal restart resumes from the first uncompleted integer;
+		- after a false negative or error, the failing prime is tested
+		  again when the campaign is resumed;
+		- old compatible standalone prime-test checkpoints are migrated
+		  automatically;
+		- --restart discards the existing progress.
+	
+		Examples:
+		# Test every prime from 2 through 1,000,000
+		python3 brpt_test.py --mode PRIME \
+			--start 2 --stop 1000000 \
+			--output ./results_primes
+	
+		# Continue indefinitely until Ctrl+C or the first failure
+		python3 brpt_test.py --mode PRIME \
+			--output ./results_primes
+	
+		# Resume the preceding campaign
+		python3 brpt_test.py --mode PRIME \
+			--output ./results_primes
+	
+		# Restart from 2 and save every completed test
+		python3 brpt_test.py --mode PRIME \
+			--restart --start 2 --save 1 \
+			--output ./results_primes
+	
+		# Save every tested prime and print progress every 50,000
+		python3 brpt_test.py --mode PRIME \
+			--events --progress 50000 \
+			--output ./results_primes
+	
+		# Use a smaller sieve segment
+		python3 brpt_test.py --mode PRIME \
+			--segment 500000 --output ./results_primes
+	
+		# Legacy alias, equivalent to --mode PRIME
+		python3 brpt_test.py --mode PRIMES \
+			--start 2 --stop 1000000 \
+			--output ./results_primes
+	
+	
+	6.  PLOT MODE – Chart Generation
+		------------------------------------------------------------
+		Reads JSON files produced by FILE, RING, and PRIME campaigns and
+		generates static Matplotlib charts, interactive Plotly charts, or
+		both.
+	
+		Syntax:
+		python3 brpt_test.py --mode PLOT \
+			[--ring <JSON>] \
+			[--prime <JSON>] \
+			[--c21 <JSON>] \
+			[--psps <JSON>] \
+			[--output <dir>] \
+			[--pairs <N>] \
+			[--backend {matplotlib|plotly|both}] \
+			[--format {png|svg|both|none}]
+	
+		Options:
+		--ring <file>       RING state JSON containing ring_counts and
+							pair_counts.
+		--prime <file>      PRIME state or summary JSON; the detailed state
+							is resolved automatically when available.
+		--c21 <file>        C21 summary JSON produced by FILE mode.
+		--psps <file>       PSPS summary JSON produced by FILE mode.
+		--output <dir>      directory for generated charts.
+							Default: results_plots
+		--pairs <N>         number of highest-frequency (A,B) pairs shown
+							in ranked charts.
+							Default: 20
+		--backend <name>    chart engine:
+							matplotlib – static PNG/SVG
+							plotly     – interactive HTML
+							both       – both
+							Default: both
+		--format <name>     static chart format:
+							png, svg, both, none
+							Default: both
+							With --backend matplotlib, none is not allowed.
+	
+		At least one of --ring, --prime, --c21, or --psps must be specified.
+	
+		Generated outputs:
+		<numbered>_*.png or .svg – static charts
+		<numbered>_*.html        – interactive charts
+		index.html               – navigation page
+		plot_summary.json        – summary in JSON
+	
+		Examples:
+		# Generate all charts from RING, C21, and PSPS
+		python3 brpt_test.py --mode PLOT \
+			--ring ./results_ring/state_ring.json \
+			--c21 ./results_c21/summary_c21.json \
+			--psps ./results_psps/summary_psps.json \
+			--output ./results_plots
+	
+		# Generate only interactive charts with 60 pairs
+		python3 brpt_test.py --mode PLOT \
+			--ring ./state_ring.json \
+			--backend plotly --pairs 60
+	
+		# Generate only static SVG charts
+		python3 brpt_test.py --mode PLOT \
+			--ring ./state_ring.json \
+			--backend matplotlib --format svg
+	
+	
+	7.  OPTIONS COMMON TO MULTIPLE MODES
+		------------------------------------------------------------
+		--output <dir>     valid for FILE, RING, PRIME, and PLOT.
+		--progress <N>     valid for FILE, RING, and PRIME.
+		--start <N>        valid for RING and PRIME; exclusive in RING,
+						   inclusive in PRIME.
+		--save <N>         valid for RING and PRIME.
+		--restart          valid for RING and PRIME.
+		--events           valid for RING and PRIME.
+		
+	
+	8.  PARALLELISM PARAMETERS
+		------------------------------------------------------------
+		FILE, RING, and PRIME automatically use all logical CPUs available.
+		The worker count and chunk size are selected automatically. There is
+		no need to specify --workers or --chunksize manually.
+	
+	
+	9.  CHECKPOINT HANDLING
+		------------------------------------------------------------
+		RING mode:
+		state_ring.json stores the scan state. If it exists and --restart
+		is not used, the scan resumes from the last completed candidate.
+	
+		PRIME mode:
+		state_prime_scan.json stores the exact-prime campaign state. If it
+		exists and --restart is not used, the campaign resumes automatically.
+		The checkpoint also records the path and SHA-256 of brpt.py.
+	
+		Ctrl+C, mismatches, false negatives, and errors trigger an orderly
+		stop and checkpoint save whenever supported by the selected mode.
+	
+	
+	10. COMPLETE PLATFORM-SPECIFIC EXAMPLES
+		------------------------------------------------------------
+		Windows PowerShell:
+	
+		python.exe .\brpt_test.py --mode FILE `
+			--input .\c21.gz --expected COMPOSITE --output .\res
+	
+		python.exe .\brpt_test.py --mode RING `
+			--start 1 --output .\ring --save 100000 --progress 10000
+	
+		python.exe .\brpt_test.py --mode PRIME `
+			--start 2 --stop 1000000 --output .\primes `
+			--save 10000 --progress 10000
+	
+		python.exe .\brpt_test.py --mode PLOT `
+			--ring .\ring\state_ring.json --output .\plots
+	
+		Linux / macOS:
+	
+		python3 ./brpt_test.py --mode FILE \
+			--input ./c21.gz --expected COMPOSITE --output ./res
+	
+		python3 ./brpt_test.py --mode RING \
+			--start 1 --output ./ring --save 100000 --progress 10000
+	
+		python3 ./brpt_test.py --mode PRIME \
+			--start 2 --stop 1000000 --output ./primes \
+			--save 10000 --progress 10000
+	
+		python3 ./brpt_test.py --mode PLOT \
+			--ring ./ring/state_ring.json --output ./plots
+	
+	
+	11. HELP AND REFERENCES
+		------------------------------------------------------------
+		For complete launcher help:
+		python3 brpt_test.py --help
+	
+		For BRPT engine help:
+		python3 brpt.py --help
+	
+	===========================================================================
+																	

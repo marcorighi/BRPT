@@ -1,0 +1,6 @@
+# Optional packages used by selected brpt_test.py modes.
+# For a publication-grade run, preserve the exact installed versions with:
+#   python3 -m pip freeze > environment-pip-freeze.txt
+sympy
+matplotlib
+plotly

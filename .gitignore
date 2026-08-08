@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+*~
+.DS_Store
+
+# Large external datasets: keep provenance in DATASETS.md instead.
+data/*.gz
+data/*.bz2
+data/*.zip
+c21.gz
+psps.bz2
+psps-below-2-to-64.txt.bz2
+factored-psps-below-2-to-64.txt.bz2
+annotated-psps-below-2-to-64.txt.bz2
+
+# BRPT generated result directories
+brpt_test_results/
+result_test_ring/
+results_*/
+result_*/
+
+# Generated reports / plots
+*.tmp
+
+# Local reproducibility captures
+environment-pip-freeze.txt
+environment-uname.txt
+environment-lscpu.txt

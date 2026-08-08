@@ -1,0 +1,90 @@
+	===========================================================================
+        	BRPT – SINGLE TEST COMMAND REFERENCE
+ 	===========================================================================
+
+	1.  PURPOSE
+	    ------------------------------------------------------------
+	    brpt.py applies the BRPT (cubic Frobenius) probable-primality
+	    test to a single integer or arithmetic expression. It prints
+	    "PRIME" or "COMPOSITE".
+	
+	
+	2.  SYNTAX
+	    ------------------------------------------------------------
+	    python3 brpt.py "expression"
+	
+	    The expression must evaluate to an integer and may contain:
+	      - integer literals
+	      - operators: +, -, *, **, //, %
+	      - the function pow(base, exp)  (also pow(base, exp, mod) is
+	        allowed, but mod is ignored for primality; use two-argument
+	        form for simple exponentiation)
+	      - parentheses for grouping
+	
+	    The expression is evaluated in a restricted environment (no
+	    built-ins except pow).
+	
+	
+	3.  OPTIONS
+	    ------------------------------------------------------------
+	    No additional options. The only argument is the expression.
+	    If the expression contains spaces, enclose it in quotes.
+	
+	
+	4.  EXAMPLES
+	    ------------------------------------------------------------
+	    # Simple number
+	    python3 brpt.py 17
+	
+	    # Expression with exponentiation
+	    python3 brpt.py "2**127 - 1"
+	
+	    # Mersenne number using pow()
+	    python3 brpt.py "pow(2, 521) - 1"
+	
+	    # Complex expression
+	    python3 brpt.py "(10**9 + 7) * 3"
+	
+	
+	5.  OUTPUT
+	    ------------------------------------------------------------
+	    The program prints a single line:
+	      - "PRIME"      if the number passes the BRPT test
+	      - "COMPOSITE"  if the test fails (the number is composite or
+	                      does not pass the preliminary checks)
+	
+	
+	6.  INTERNAL BEHAVIOUR (summary)
+	    ------------------------------------------------------------
+	    - Quick checks: n % 6 ? {1,5} and pow(2, n-1, n) == 1.
+	    - Automatic search for parameters (a,b) of the cubic polynomial
+	      x³ + a·x + b with discriminant having Jacobi symbol 1.
+	    - Exponentiation in the quotient ring and verification of the
+	      Frobenius conditions.
+	    - If no valid pair is found within the search radius, the number
+	      is considered COMPOSITE.
+	
+	
+	7.  PRACTICAL NOTES
+	    ------------------------------------------------------------
+	    - Requires Python 3.6 or higher.
+	    - No external dependencies; uses only the standard library.
+	    - The test is probabilistic but extremely robust (no known false
+	      primes).
+	    - For very large numbers (> 2048 bits) execution time may
+	      increase, but it remains generally acceptable.
+	    - If the expression is invalid, an error with a descriptive
+	      message is raised.
+	
+	8.  PLATFORM-SPECIFIC COMMANDS
+	    ------------------------------------------------------------
+	    # Windows (cmd)
+	    python.exe brpt.py "pow(2, 521) - 1"
+	
+	    # Windows (PowerShell)
+	    python.exe .\brpt.py "pow(2, 521) - 1"
+	
+	    # Linux / macOS
+	    python3 ./brpt.py "pow(2, 521) - 1"
+	
+				===========================================================================
