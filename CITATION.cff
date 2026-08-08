@@ -2,7 +2,10 @@ cff-version: 1.2.0
 message: "If you use BRPT in scientific work, please cite the software release used in your computations."
 title: "BRPT: cubic Frobenius probable-primality test"
 type: software
-version: 1.0.0
+version: "1.0.1"
+doi: "10.5281/zenodo.21848363"
+date-released: 2026-08-08
+repository-code: "https://github.com/marcorighi/BRPT"
 
 authors:
   - family-names: Righi

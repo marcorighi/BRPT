@@ -1,5 +1,8 @@
 # BRPT
 
+[![DOI](https://zenodo.org/badge/1327508963.svg)](https://doi.org/10.5281/zenodo.21848362)
+
+**Current archived release:** v1.0.1 — DOI: [10.5281/zenodo.21848363](https://doi.org/10.5281/zenodo.21848363)
 **BRPT** is a reference implementation and validation suite for a cubic
 Frobenius probable-primality test developed by **Marco Righi** and
 **Michele Baldi**.
